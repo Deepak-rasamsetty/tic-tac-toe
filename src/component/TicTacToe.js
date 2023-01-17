@@ -12,9 +12,12 @@ export default function TicTacToe({
   console.log("ticTacToe rednered");
   var tictactoeRow = [];
   var tictactoeBoard = [];
-  const [allBoxState, setAllBoxState] = useState(null);
-  const fetchAllBoxState = useCallback(() => {
-    fetch("http://localhost:8080/game/getAllBoxState/" + gameSessionId, {
+ 
+  const [lastUpdatedElement, setLastUpdatedElement] = useState(null);
+  
+  const fetchLastUpdatedComponent = useCallback(() => {
+    console.log('inside fetchLastUpdatedComponent');
+    fetch("http://localhost:8080/game/getLastUpdatedComponent/" + gameSessionId, {
       method: "GET",
       headers: {
         Accept: "*/*",
@@ -22,21 +25,9 @@ export default function TicTacToe({
       },
     })
       .then((response) => response.json())
-      .then((resp) => setAllBoxState(resp));
+      .then((resp) => setLastUpdatedElement(resp));
   },[gameSessionId]);
-  const getBoxState = (boxIndex) => {
-    if (allBoxState === null) {
-      return null;
-    }
-    var requiredBox;
-    allBoxState.forEach((boxState) => {
-      if (boxState.boxIndex === boxIndex) {
-        console.log("filteredBoxState - " + JSON.stringify(boxState));
-        requiredBox = boxState;
-      }
-    });
-    return requiredBox.player;
-  };
+
 
   const selectBox = (boxIndex) => {
     const request = {
@@ -60,14 +51,15 @@ export default function TicTacToe({
         }
       })
       .then((resp) => {
+        console.log("get resp - " + JSON.stringify(resp));
         if (resp.status === "COMPLETED") {
-          console.log("get resp - " + JSON.stringify(resp));
+          
           closeGame(resp.status, resp.message);
         } else if (resp.status === "DRAWN") {
           closeGame(resp.status, resp.message);
         }
         setPlayerTurn(false);
-        fetchAllBoxState();
+        fetchLastUpdatedComponent();
       })
       .catch(() => {
         console.log("error occured");
@@ -78,14 +70,15 @@ export default function TicTacToe({
     tictactoeRow = [];
     for (let j = 0; j < 3; j++) {
       var boxIndex = i * 3 + j + 1;
-      var componentFilledBy = getBoxState(boxIndex);
+     var isUpdated = lastUpdatedElement===boxIndex;
       tictactoeRow.push(
         <div className="col-md-4" key={i * 3 + j}>
           <TicTacComponent
             playerTurn={playerTurn}
             boxIndex={boxIndex}
-            componentFilledBy={componentFilledBy}
+           isUpdated= {isUpdated}
             selectBox={selectBox}
+            gameSessionId={gameSessionId}
           />
         </div>
       );
@@ -99,12 +92,12 @@ export default function TicTacToe({
 
   useEffect(() => {
     if (playerTurn && gameStatus !== "") {
-      fetchAllBoxState();
+      fetchLastUpdatedComponent();
       if (gameStatus === "COMPLETED" || gameStatus === "DRAWN") {
         setPlayerTurn(false);
       }
     }
-  }, [playerTurn, gameStatus, setPlayerTurn, fetchAllBoxState]);
+  }, [playerTurn, gameStatus, setPlayerTurn, fetchLastUpdatedComponent]);
   return (
     <div className="container w-50 p-3">
       <div className="card">
